@@ -1,0 +1,23 @@
+CREATE OR REPLACE FUNCTION log_publisher_changes()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        INSERT INTO publisher_history (publisher_id, name, address, phone, created_at, action)
+        VALUES (NEW.id, NEW.name, NEW.address, NEW.phone, CURRENT_TIMESTAMP, 'INSERT');
+        RETURN NEW;
+    ELSIF (TG_OP = 'UPDATE') THEN
+        INSERT INTO publisher_history (publisher_id, name, address, phone, updated_at, action)
+        VALUES (OLD.id, OLD.name, OLD.address, OLD.phone,CURRENT_TIMESTAMP, OLD.updated_at, 'UPDATE');
+        RETURN NEW;
+    ELSIF (TG_OP = 'DELETE') THEN
+        INSERT INTO publisher_history (publisher_id, name, address, phone,updated_at, action)
+        VALUES (OLD.id, OLD.name, OLD.address, OLD.phone, CURRENT_TIMESTAMP, 'DELETE');
+        RETURN OLD;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER publisher_history_trigger
+AFTER INSERT OR UPDATE OR DELETE ON publisher
+FOR EACH ROW
+EXECUTE PROCEDURE log_publisher_changes();
